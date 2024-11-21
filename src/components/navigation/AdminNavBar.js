@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   AppBar,
+  Box,
   Toolbar,
   IconButton,
   Typography,
-  Box,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  Button,
   useTheme,
   useMediaQuery,
-  Button,
+  Menu,
+  MenuItem,
   Tabs,
-  Tab
+  Tab,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -22,17 +20,27 @@ import {
   ShoppingCart as PurchaseIcon,
   People as UsersIcon,
   Chat as ChatIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Category as CategoryIcon
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminNavBar() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+
+  const handleMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleLogout = async () => {
     try {
@@ -43,43 +51,48 @@ export default function AdminNavBar() {
     }
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin-dashboard' },
-    { text: 'Medicine', icon: <MedicineIcon />, path: '/admin-dashboard/medicine' },
-    { text: 'Purchase', icon: <PurchaseIcon />, path: '/admin-dashboard/purchase' },
-    { text: 'Users', icon: <UsersIcon />, path: '/admin-dashboard/users' },
-    { text: 'Chat', icon: <ChatIcon />, path: '/admin-dashboard/chat' },
+  const navigationItems = [
+    { label: 'Dashboard', value: '/admin-dashboard', icon: <DashboardIcon /> },
+    { label: 'Medicine', value: '/admin/medicine', icon: <MedicineIcon /> },
+    { label: 'Category', value: '/admin/category', icon: <CategoryIcon /> },
+    { label: 'Purchase', value: '/admin/purchase', icon: <PurchaseIcon /> },
+    { label: 'Users', value: '/admin/users', icon: <UsersIcon /> },
+    { label: 'Chat', value: '/admin/chat', icon: <ChatIcon /> },
   ];
 
-  const getCurrentTabValue = () => {
-    const currentPath = location.pathname;
-    const index = menuItems.findIndex(item => item.path === currentPath);
-    return index === -1 ? 0 : index;
-  };
-
   return (
-    <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" component="div" sx={{ mr: 4 }}>
-            PuremedPharmacy
-          </Typography>
+    <AppBar position="fixed">
+      <Toolbar>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 0, mr: 2 }}>
+          PureMed
+        </Typography>
+        <Box sx={{ flexGrow: 1 }}>
           {!isMobile && (
-            <Tabs 
-              value={getCurrentTabValue()} 
+            <Tabs
+              value={location.pathname}
               textColor="inherit"
               indicatorColor="secondary"
+              sx={{
+                '& .MuiTab-root': {
+                  minHeight: 64,
+                  color: 'inherit',
+                }
+              }}
             >
-              {menuItems.map((item, index) => (
+              {navigationItems.map((item) => (
                 <Tab
-                  key={item.text}
+                  key={item.value}
+                  label={item.label}
+                  value={item.value}
                   icon={item.icon}
-                  label={item.text}
-                  onClick={() => navigate(item.path)}
+                  component={Link}
+                  to={item.value}
                   sx={{
-                    minWidth: 'auto',
-                    px: 3,
-                    '&:hover': {
+                    '&.Mui-selected': {
+                      color: 'inherit',
+                      opacity: 1,
+                    },
+                    '&:not(.Mui-selected)': {
                       opacity: 0.8,
                     }
                   }}
@@ -89,24 +102,62 @@ export default function AdminNavBar() {
           )}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isMobile && (
-            <IconButton
+          {isMobile ? (
+            <>
+              <IconButton
+                size="large"
+                edge="end"
+                color="inherit"
+                aria-label="menu"
+                onClick={handleMenu}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                keepMounted
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+              >
+                {navigationItems.map((item) => (
+                  <MenuItem
+                    key={item.value}
+                    onClick={() => {
+                      navigate(item.value);
+                      handleClose();
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {item.icon}
+                      <Typography sx={{ ml: 1 }}>{item.label}</Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+                <MenuItem onClick={handleLogout}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <LogoutIcon />
+                    <Typography sx={{ ml: 1 }}>Logout</Typography>
+                  </Box>
+                </MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Button
               color="inherit"
-              edge="start"
-              onClick={() => {}}
-              sx={{ ml: 2 }}
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
             >
-              <MenuIcon />
-            </IconButton>
+              Logout
+            </Button>
           )}
-          <Button 
-            color="inherit" 
-            onClick={handleLogout} 
-            startIcon={<LogoutIcon />}
-            sx={{ ml: 2 }}
-          >
-            Logout
-          </Button>
         </Box>
       </Toolbar>
     </AppBar>

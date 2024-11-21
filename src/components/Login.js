@@ -8,7 +8,9 @@ import {
   Button,
   Typography,
   Box,
-  Alert
+  Alert,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { styled } from '@mui/system';
 
@@ -42,6 +44,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -49,7 +52,7 @@ export default function Login() {
     e.preventDefault();
     try {
       setError('');
-      await login(email, password);
+      await login(email, password, rememberMe);
       
       // Navigate based on email
       if (email === 'admin@example.com') {
@@ -99,6 +102,17 @@ export default function Login() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                value="remember"
+                color="primary"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+            }
+            label="Remember me"
           />
           <StyledButton
             type="submit"

@@ -17,7 +17,6 @@ export function MedicineProvider({ children }) {
     return savedLogs ? JSON.parse(savedLogs) : [];
   });
 
-  // Save to localStorage whenever data changes
   useEffect(() => {
     localStorage.setItem('medicines', JSON.stringify(medicines));
   }, [medicines]);
@@ -40,24 +39,27 @@ export function MedicineProvider({ children }) {
   const addMedicine = (medicineData) => {
     setMedicines(prev => {
       const existingMedicine = prev.find(m => 
-        m.name.toLowerCase() === medicineData.name.toLowerCase()
+        m.name.toLowerCase() === medicineData.name.toLowerCase() &&
+        m.categoryId === medicineData.categoryId
       );
 
       if (existingMedicine) {
-        // Merge quantities if medicine exists
         const updatedMedicines = prev.map(m => 
-          m.name.toLowerCase() === medicineData.name.toLowerCase()
+          m.name.toLowerCase() === medicineData.name.toLowerCase() &&
+          m.categoryId === medicineData.categoryId
             ? { 
                 ...m, 
                 quantity: parseInt(m.quantity) + parseInt(medicineData.quantity),
-                price: medicineData.price // Update price to latest
+                price: medicineData.price,
+                lowPrice: medicineData.lowPrice,
+                mediumPrice: medicineData.mediumPrice,
+                highPrice: medicineData.highPrice
               }
             : m
         );
         addActivity('MERGE', `Merged ${medicineData.quantity} units to ${medicineData.name}`);
         return updatedMedicines;
       } else {
-        // Add new medicine
         addActivity('ADD', `Added new medicine: ${medicineData.name}`);
         return [...prev, { ...medicineData, id: Date.now() }];
       }
@@ -77,8 +79,11 @@ export function MedicineProvider({ children }) {
   const deleteMedicine = (id) => {
     setMedicines(prev => {
       const medicineToDelete = prev.find(m => m.id === id);
-      addActivity('DELETE', `Deleted medicine: ${medicineToDelete.name}`);
-      return prev.filter(medicine => medicine.id !== id);
+      if (medicineToDelete) {
+        addActivity('DELETE', `Deleted medicine: ${medicineToDelete.name}`);
+        return prev.filter(medicine => medicine.id !== id);
+      }
+      return prev;
     });
   };
 
@@ -92,7 +97,7 @@ export function MedicineProvider({ children }) {
       });
     }
 
-    const report = {
+    return {
       totalActivities: filteredLogs.length,
       addCount: filteredLogs.filter(log => log.action === 'ADD').length,
       updateCount: filteredLogs.filter(log => log.action === 'UPDATE').length,
@@ -100,8 +105,6 @@ export function MedicineProvider({ children }) {
       mergeCount: filteredLogs.filter(log => log.action === 'MERGE').length,
       activities: filteredLogs
     };
-
-    return report;
   };
 
   const value = {
@@ -109,7 +112,6 @@ export function MedicineProvider({ children }) {
     addMedicine,
     updateMedicine,
     deleteMedicine,
-    activityLog,
     generateReport
   };
 

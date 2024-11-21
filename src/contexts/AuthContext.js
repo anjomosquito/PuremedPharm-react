@@ -14,6 +14,10 @@ export function AuthProvider({ children }) {
     return savedUser ? JSON.parse(savedUser) : null;
   });
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    const remembered = localStorage.getItem('rememberMe');
+    return remembered ? JSON.parse(remembered) : false;
+  });
   const navigate = useNavigate();
   let inactivityTimeout;
 
@@ -21,17 +25,20 @@ export function AuthProvider({ children }) {
     if (inactivityTimeout) {
       clearTimeout(inactivityTimeout);
     }
-    inactivityTimeout = setTimeout(() => {
-      logout();
-      toast.info('Session expired due to inactivity');
-    }, 10 * 60 * 1000); // 10 minutes
+    // Only set inactivity timeout if remember me is not enabled
+    if (!rememberMe) {
+      inactivityTimeout = setTimeout(() => {
+        logout();
+        toast.info('Session expired due to inactivity');
+      }, 10 * 60 * 1000); // 10 minutes
+    }
   };
 
   useEffect(() => {
     // Add event listeners for user activity
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
     const handleActivity = () => {
-      if (user) {
+      if (user && !rememberMe) {
         resetInactivityTimer();
       }
     };
@@ -40,8 +47,8 @@ export function AuthProvider({ children }) {
       document.addEventListener(event, handleActivity);
     });
 
-    // Initialize timer if user is logged in
-    if (user) {
+    // Initialize timer if user is logged in and remember me is not enabled
+    if (user && !rememberMe) {
       resetInactivityTimer();
     }
 
@@ -54,9 +61,9 @@ export function AuthProvider({ children }) {
         clearTimeout(inactivityTimeout);
       }
     };
-  }, [user]);
+  }, [user, rememberMe]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, remember) => {
     setLoading(true);
     try {
       // Hardcoded credentials check
@@ -69,8 +76,17 @@ export function AuthProvider({ children }) {
 
       if (userData) {
         setUser(userData);
+        setRememberMe(remember);
+        
+        // Store user data and remember me preference
         localStorage.setItem('user', JSON.stringify(userData));
-        resetInactivityTimer();
+        localStorage.setItem('rememberMe', JSON.stringify(remember));
+        
+        // Only set inactivity timer if remember me is not enabled
+        if (!remember) {
+          resetInactivityTimer();
+        }
+        
         toast.success('Successfully logged in!');
         navigate(userData.role === 'admin' ? '/admin-dashboard' : '/user-dashboard');
       } else {
@@ -87,7 +103,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       setUser(null);
+      setRememberMe(false);
       localStorage.removeItem('user');
+      localStorage.removeItem('rememberMe');
       if (inactivityTimeout) {
         clearTimeout(inactivityTimeout);
       }
@@ -103,7 +121,8 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
-    loading
+    loading,
+    rememberMe
   };
 
   return (
